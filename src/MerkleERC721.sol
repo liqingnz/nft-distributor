@@ -18,39 +18,50 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
     uint256 public constant MAX_SUPPLY = 3000;
     uint256 public constant ADMIN_MAX_MINT_AMOUNT = 2000;
 
-    uint256 public immutable presaleStartTime;
-    uint256 public immutable presaleEndTime;
-    uint256 public immutable mintFee;
-
-    uint256 private _nextTokenId;
+    uint256 public presaleStartTime;
+    uint256 public presaleEndTime;
+    uint256 public mintFee;
     uint256 public adminMintedAmount;
+    uint256 private _nextTokenId;
 
     mapping(bytes32 merkleRoot => WhitelistInfo) public whitelistInfo;
     mapping(address => bool) public hasMinted;
 
-    constructor(
-        uint256 _presaleStartTime,
-        uint256 _presaleEndTime,
-        uint256 _mintFee
-    ) {
-        presaleStartTime = _presaleStartTime;
-        presaleEndTime = _presaleEndTime;
-        mintFee = _mintFee;
+    constructor() {
         _disableInitializers();
     }
 
     function initialize(
         address _owner,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        uint256 _presaleStartTime,
+        uint256 _presaleEndTime,
+        uint256 _mintFee
     ) external initializer {
         __ERC721_init(_name, _symbol);
         __Ownable_init(_owner);
+        presaleStartTime = _presaleStartTime;
+        presaleEndTime = _presaleEndTime;
+        mintFee = _mintFee;
     }
 
     function tokenURI(uint256) public pure override returns (string memory) {
         return
             "https://nft.goat.network/assets/848b19b3b6a0c172b5b067f818f76b93992d62aaf15c848dac03eb3e1fcbc95f.json";
+    }
+
+    function setTime(
+        uint256 _presaleStartTime,
+        uint256 _presaleEndTime
+    ) external onlyOwner {
+        require(_presaleStartTime < _presaleEndTime, "Invalid presale time");
+        presaleStartTime = _presaleStartTime;
+        presaleEndTime = _presaleEndTime;
+    }
+
+    function setMintFee(uint256 _mintFee) external onlyOwner {
+        mintFee = _mintFee;
     }
 
     function getNextTokenId() external view returns (uint256) {

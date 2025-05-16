@@ -20,14 +20,21 @@ contract MerkleERC721Test is Test {
         // deploy mock OFT
         uint256 startTime = block.timestamp + 10 minutes;
         uint256 endTime = startTime + 20 minutes;
-        nftContract = new MerkleERC721(startTime, endTime, 1 ether);
+        nftContract = new MerkleERC721();
         UpgradeableProxy proxy = new UpgradeableProxy(
             address(nftContract),
             proxyAdmin,
             ""
         );
         nftContract = MerkleERC721(payable(proxy));
-        nftContract.initialize(admin, "TEST NFT", "TEST");
+        nftContract.initialize(
+            admin,
+            "TEST NFT",
+            "TEST",
+            startTime,
+            endTime,
+            1 ether
+        );
 
         assertEq(nftContract.presaleStartTime(), startTime);
         assertEq(nftContract.presaleEndTime(), endTime);

@@ -22,18 +22,21 @@ contract TaskTest is Script {
 
     function deploy() public {
         // deploy contracts
-        MerkleERC721 nftContract = new MerkleERC721(
-            1747288800,
-            1747375200,
-            10 ** 12
-        );
+        MerkleERC721 nftContract = new MerkleERC721();
         UpgradeableProxy proxy = new UpgradeableProxy(
             address(nftContract),
             deployer,
             ""
         );
         nftContract = MerkleERC721(payable(proxy));
-        nftContract.initialize(admin, "TEST NFT", "TEST");
+        nftContract.initialize(
+            admin,
+            "TEST NFT",
+            "TEST",
+            1747288800,
+            1747375200,
+            10 ** 12
+        );
         console.log("nftContract contract address: ", address(nftContract));
     }
 }
