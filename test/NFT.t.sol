@@ -29,7 +29,7 @@ contract MerkleERC721Test is Test {
         nftContract = MerkleERC721(payable(proxy));
         nftContract.initialize(admin, "TEST NFT", "TEST");
 
-        assertEq(nftContract.presaleSatrtTime(), startTime);
+        assertEq(nftContract.presaleStartTime(), startTime);
         assertEq(nftContract.presaleEndTime(), endTime);
         assertEq(nftContract.mintFee(), 1 ether);
 
@@ -124,25 +124,25 @@ contract MerkleERC721Test is Test {
         assertEq(initialTokenId, 0);
 
         vm.expectRevert("Presale not started");
-        nftContract.adminMint(admin, mintAmount);
+        nftContract.batchMint(admin, mintAmount);
 
         skip(10 minutes); // skip to start time
 
         vm.expectRevert("Invalid address");
-        nftContract.adminMint(address(0), mintAmount);
+        nftContract.batchMint(address(0), mintAmount);
 
         vm.expectRevert("Invalid amount");
-        nftContract.adminMint(admin, 0);
+        nftContract.batchMint(admin, 0);
 
         uint256 maxSupply = nftContract.MAX_SUPPLY();
         vm.expectRevert("Exceeded max supply");
-        nftContract.adminMint(admin, maxSupply + 1);
+        nftContract.batchMint(admin, maxSupply + 1);
 
         uint256 adminMaxAmount = nftContract.ADMIN_MAX_MINT_AMOUNT();
         vm.expectRevert("Exceeded max admin mint amount");
-        nftContract.adminMint(admin, adminMaxAmount + 1);
+        nftContract.batchMint(admin, adminMaxAmount + 1);
 
-        nftContract.adminMint(admin, mintAmount);
+        nftContract.batchMint(admin, mintAmount);
         assertEq(nftContract.getNextTokenId(), mintAmount);
     }
 }

@@ -10,25 +10,30 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
     event Mint(address user, uint256 tokenId);
     event WithdrawFunds();
 
+    struct WhitelistInfo {
+        bool isSet;
+        uint224 presaleFee;
+    }
+
     uint256 public constant MAX_SUPPLY = 3000;
     uint256 public constant ADMIN_MAX_MINT_AMOUNT = 2000;
 
-    uint256 public immutable presaleSatrtTime;
+    uint256 public immutable presaleStartTime;
     uint256 public immutable presaleEndTime;
     uint256 public immutable mintFee;
 
     uint256 private _nextTokenId;
     uint256 public adminMintedAmount;
 
-    mapping(bytes32 merkleRoot => uint256 presaleFee) whitelistFees;
+    mapping(bytes32 merkleRoot => WhitelistInfo) public whitelistInfo;
     mapping(address => bool) public hasMinted;
 
     constructor(
-        uint256 _presaleSatrtTime,
+        uint256 _presaleStartTime,
         uint256 _presaleEndTime,
         uint256 _mintFee
     ) {
-        presaleSatrtTime = _presaleSatrtTime;
+        presaleStartTime = _presaleStartTime;
         presaleEndTime = _presaleEndTime;
         mintFee = _mintFee;
         _disableInitializers();
@@ -118,7 +123,7 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
             bytes32[] memory tempLeaves = new bytes32[](
                 (leaves.length + 1) / 2
             );
-            uint256 newTargetIndex = 0;
+            uint256 newTargetIndex = targetIndex / 2; // Default to parent index
 
             for (uint256 i = 0; i < leaves.length; i += 2) {
                 if (i + 1 < leaves.length) {
@@ -126,14 +131,14 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
                     tempLeaves[i / 2] = _hashPair(leaves[i], leaves[i + 1]);
 
                     // If target is in this pair, add sibling to proof
-                    if (i == (targetIndex / 2) * 2) {
+                    if (i == targetIndex) {
                         tempProof = new bytes32[](proof.length + 1);
                         for (uint256 j = 0; j < proof.length; j++) {
                             tempProof[j] = proof[j];
                         }
                         tempProof[proof.length] = leaves[i + 1]; // Right sibling
                         proof = tempProof;
-                    } else if (i + 1 == (targetIndex / 2) * 2) {
+                    } else if (i + 1 == targetIndex) {
                         tempProof = new bytes32[](proof.length + 1);
                         for (uint256 j = 0; j < proof.length; j++) {
                             tempProof[j] = proof[j];
@@ -144,10 +149,9 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
                 } else {
                     // Odd leaf
                     tempLeaves[i / 2] = leaves[i];
-                }
-
-                if (i == (targetIndex / 2) * 2) {
-                    newTargetIndex = i / 2;
+                    if (i == targetIndex) {
+                        newTargetIndex = i / 2; // Update for odd leaf
+                    }
                 }
             }
             leaves = tempLeaves;
@@ -170,28 +174,29 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
     // set merkle root and mint fee for whitelist
     function setWhitelist(
         bytes32 _merkleRoot,
-        uint256 _presaleFee
+        uint224 _presaleFee
     ) external onlyOwner {
         require(_merkleRoot != 0, "Invalid merkle root");
-        whitelistFees[_merkleRoot] = _presaleFee;
+        whitelistInfo[_merkleRoot] = WhitelistInfo(true, _presaleFee);
         emit SetWhitelist(_merkleRoot, _presaleFee);
     }
 
-    function adminMint(address _to, uint256 _amount) external onlyOwner {
-        require(block.timestamp >= presaleSatrtTime, "Presale not started");
+    function batchMint(address _to, uint256 _amount) external onlyOwner {
         require(_to != address(0), "Invalid address");
         require(_amount > 0, "Invalid amount");
+        require(block.timestamp >= presaleStartTime, "Presale not started");
         require(_nextTokenId + _amount <= MAX_SUPPLY, "Exceeded max supply");
         require(
             adminMintedAmount + _amount <= ADMIN_MAX_MINT_AMOUNT,
             "Exceeded max admin mint amount"
         );
         adminMintedAmount += _amount;
+        uint256 tokenId = _nextTokenId;
         for (uint256 i = 0; i < _amount; i++) {
-            uint256 tokenId = _nextTokenId++;
-            _safeMint(msg.sender, tokenId);
-            emit Mint(msg.sender, tokenId);
+            _safeMint(_to, tokenId);
+            emit Mint(_to, tokenId++);
         }
+        _nextTokenId = tokenId;
     }
 
     // mint for whitelist users
@@ -199,10 +204,14 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
         bytes32 _whitelistMerkleRoot,
         bytes32[] calldata _proof
     ) external payable {
-        require(block.timestamp >= presaleSatrtTime, "Presale not started");
+        require(block.timestamp >= presaleStartTime, "Presale not started");
         require(block.timestamp < presaleEndTime, "Presale ended");
         require(
-            msg.value == whitelistFees[_whitelistMerkleRoot],
+            whitelistInfo[_whitelistMerkleRoot].isSet,
+            "Merkle root not set"
+        );
+        require(
+            msg.value == whitelistInfo[_whitelistMerkleRoot].presaleFee,
             "Invalid funds"
         );
         require(
