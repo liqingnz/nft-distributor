@@ -1,6 +1,5 @@
 node_modules
 .env
-.vscode
 
 # formatter
 .prettierrc
@@ -33,3 +32,7 @@ ignition/deployments/chain-31337
 # tempory files
 script/temp.sol
 test/temp.sol
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore

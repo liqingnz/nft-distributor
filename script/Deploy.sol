@@ -31,11 +31,11 @@ contract TaskTest is Script {
         nftContract = MerkleERC721(payable(proxy));
         nftContract.initialize(
             admin,
-            "TEST NFT",
-            "TEST",
-            1747288800,
-            1747375200,
-            10 ** 12
+            "Bitcoin Pizza",
+            "BP",
+            1747746000,
+            1747918800,
+            500000000000000
         );
         console.log("nftContract contract address: ", address(nftContract));
     }
