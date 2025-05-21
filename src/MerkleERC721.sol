@@ -46,9 +46,11 @@ contract MerkleERC721 is ERC721EnumerableUpgradeable, OwnableUpgradeable {
         mintFee = _mintFee;
     }
 
-    function tokenURI(uint256) public pure override returns (string memory) {
-        return
-            "https://nft.goat.network/assets/848b19b3b6a0c172b5b067f818f76b93992d62aaf15c848dac03eb3e1fcbc95f.json";
+    function tokenURI(
+        uint256 _tokenId
+    ) public view override returns (string memory) {
+        _requireOwned(_tokenId);
+        return "https://nft.goat.network/assets/Bitcoin-Pizza.json";
     }
 
     function setTime(
